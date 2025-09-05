@@ -1,0 +1,31 @@
+[project]
+authors = [{name = "Nguyen Hoang", email = "hmnguyen1067@gmail.com"}]
+dependencies = []
+name = "Bank-Customer-Churn-Prediction-Pipeline"
+requires-python = ">= 3.11"
+version = "0.1.0"
+
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["osx-arm64"]
+
+[tool.pixi.pypi-dependencies]
+bank_customer_churn_prediction_pipeline = { path = ".", editable = true }
+
+[tool.pixi.tasks]
+
+[tool.pixi.dependencies]
+seaborn = ">=0.13.2,<0.14"
+ipykernel = ">=6.30.1,<7"
+mlflow = ">=3.2.0,<4"
+xgboost = ">=3.0.4,<4"
+lightgbm = ">=4.6.0,<5"
+scikit-learn = ">=1.7.1,<2"
+isort = ">=6.0.1,<7"
+black = ">=25.1.0,<26"
+prefect = ">=3.4.15,<4"
+ydata-profiling = ">=4.16.0,<5"
