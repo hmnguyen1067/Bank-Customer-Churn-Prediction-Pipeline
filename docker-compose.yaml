@@ -1,0 +1,110 @@
+version: "3.9"
+
+services:
+  # PostgreSQL database
+  db:
+    container_name: postgres_db
+    image: postgres:13
+    restart: always
+    environment:
+      - POSTGRES_USER=${PG_USER}
+      - POSTGRES_PASSWORD=${PG_PASSWORD}
+      - POSTGRES_DB=${PG_DATABASE}
+    networks:
+      - backend
+    ports:
+      - "${PG_PORT}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-p", "${PG_PORT}", "-U", "${PG_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+  # MinIO server for S3-compatible object storage
+  s3:
+    container_name: s3_minio
+    image: minio/minio
+    restart: always
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_ADDRESS=${MINIO_ADDRESS}
+      - MINIO_PORT=${MINIO_PORT}
+      - MINIO_STORAGE_USE_HTTPS=${MINIO_STORAGE_USE_HTTPS}
+      - MINIO_CONSOLE_ADDRESS=${MINIO_CONSOLE_ADDRESS}
+    networks:
+      - frontend
+      - backend
+    ports:
+      - "${MINIO_PORT}:9000"
+      - "${MINIO_CONSOLE_PORT}:9001"
+    volumes:
+      - s3_minio_data:/data
+    command: server /data --console-address ${MINIO_CONSOLE_ADDRESS}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+  # Create a bucket named "mlflow" on MinIO if it doesn't exist
+  minio_create_bucket:
+    container_name: minio_create_bucket
+    image: minio/mc
+    depends_on:
+      s3:
+        condition: service_healthy
+    networks:
+      - backend
+    entrypoint: >
+      bash -c "
+      mc alias set minio http://s3:9000 ${MINIO_ACCESS_KEY:-MINIO_ROOT_USER} ${MINIO_SECRET_ACCESS_KEY:-MINIO_ROOT_PASSWORD};
+      if ! mc ls minio/${MLFLOW_BUCKET_NAME}; then
+        echo 'Creating ${MLFLOW_BUCKET_NAME} bucket...';
+        mc mb minio/${MLFLOW_BUCKET_NAME}
+        mc policy download minio/${MLFLOW_BUCKET_NAME}
+        echo '${MLFLOW_BUCKET_NAME} bucket created';
+      else
+        echo '${MLFLOW_BUCKET_NAME} bucket already exists'
+      fi
+      "
+  # MLflow Tracking Server
+  mlflow_tracking_server:
+    container_name: mlflow_server
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+    depends_on:
+      - db
+    restart: always
+    environment:
+      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY:-$MINIO_ROOT_USER}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_ACCESS_KEY:-$MINIO_ROOT_PASSWORD}
+      - MLFLOW_S3_ENDPOINT_URL=http://s3:${MINIO_PORT} # Replace this with remote storage endpoint e.g. s3://my-bucket in real use cases
+      - MLFLOW_S3_IGNORE_TLS=true
+    networks:
+      - frontend
+      - backend
+    ports:
+      - "${MLFLOW_PORT}:5000"
+    command: >
+      mlflow server
+      --backend-store-uri postgresql://${PG_USER}:${PG_PASSWORD}@db:${PG_PORT}/${PG_DATABASE}
+      --host 0.0.0.0
+      --serve-artifacts
+      --artifacts-destination s3://${MLFLOW_BUCKET_NAME}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${MLFLOW_PORT}/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  db_data:
+  s3_minio_data:
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
