@@ -900,7 +900,7 @@ packages:
 - pypi: ./
   name: bank-customer-churn-prediction-pipeline
   version: 0.1.0
-  sha256: d48a8ff21303d88252dbb1b85a19b1fe94b8efdeee1ad4bb876dc938eacc4d10
+  sha256: 51de31ff3b6d2e1100d470945f60e21cb8f57fcd6e996457b87361eb8426617f
   requires_python: '>=3.11'
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/osx-arm64/bcrypt-4.3.0-py312h6f58b40_2.conda
