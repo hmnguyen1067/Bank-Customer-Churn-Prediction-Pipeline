@@ -1,4 +1,4 @@
-from constants import (
+from .constants import (
     EVIDENTLY_TRACKING_URI,
     NUMERICAL_FEATURES,
     CATEGORICAL_FEATURES,
@@ -11,7 +11,7 @@ from evidently.presets import DataDriftPreset
 from evidently.ui.workspace import RemoteWorkspace
 from evidently.metrics import ValueDrift, DriftedColumnsCount, MissingValueCount
 
-from training import make_predictions
+from .training import make_predictions
 
 
 def create_evidently_data_def():
@@ -52,13 +52,15 @@ def generate_evidently_report(
     return report
 
 
-def upload_report(report: Report):
-    ws = RemoteWorkspace(EVIDENTLY_TRACKING_URI)
+def upload_report(
+    report: Report, evidently_uri=EVIDENTLY_TRACKING_URI, proj_name=EVIDENTLY_PROJECT
+):
+    ws = RemoteWorkspace(evidently_uri)
 
-    if proj_list := ws.search_project(EVIDENTLY_PROJECT):
+    if proj_list := ws.search_project(proj_name):
         proj_id = proj_list[0].id
         project = ws.get_project(proj_id)
     else:
-        project = ws.create_project(EVIDENTLY_PROJECT)
+        project = ws.create_project(proj_name)
 
     ws.add_run(project.id, report)

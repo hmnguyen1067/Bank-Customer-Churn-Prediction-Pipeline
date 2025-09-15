@@ -1,29 +1,29 @@
-from typing import Optional
-
 import mlflow
 import numpy as np
 import pandas as pd
 from prefect import flow, task
 
-from constants import (
+from .constants import (
     MLFLOW_EXPERIMENT_NAME,
     DEFAULT_SEED,
     MLFLOW_TRACKING_URI,
     PREPROCESSOR_MODEL_NAME,
     XGB_MODEL_NAME,
-    PREDICTION_COL,
+    MLFLOW_RUNNAME_PREFIX,
+    EVIDENTLY_TRACKING_URI,
+    EVIDENTLY_PROJECT,
+    NUM_TRIALS,
 )
-from data_io import read_data, split_data
+from .data_io import read_data, split_data
 
 # from .evidently_report import generate_evidently_report
-from preprocessing import preprocess_data
-from training import (
+from .preprocessing import preprocess_data
+from .training import (
     optuna_tuning,
     train_best_xgb_model,
     plot_feature_importance,
-    make_predictions,
 )
-from monitoring import (
+from .monitoring import (
     create_evidently_data_def,
     create_evidently_dataset,
     generate_evidently_report,
@@ -44,9 +44,16 @@ def preprocess(X_train: pd.DataFrame, X_val: pd.DataFrame):
 
 @task
 def hyperparameter_tuning(
-    X_train: np.ndarray, y_train: pd.Series, X_val: np.ndarray, y_val: pd.Series
+    X_train: np.ndarray,
+    y_train: pd.Series,
+    X_val: np.ndarray,
+    y_val: pd.Series,
+    runname_prefix: str,
+    n_trials: int,
 ):
-    best_params = optuna_tuning(X_train, y_train, X_val, y_val)
+    best_params = optuna_tuning(
+        X_train, y_train, X_val, y_val, runname_prefix=runname_prefix, n_trials=n_trials
+    )
     return best_params
 
 
@@ -87,6 +94,8 @@ def create_drift_report(
     y_t: pd.Series,
     preprocessor,
     model,
+    evidently_uri=EVIDENTLY_TRACKING_URI,
+    proj_name=EVIDENTLY_PROJECT,
 ):
     data_definition = create_evidently_data_def()
 
@@ -98,7 +107,7 @@ def create_drift_report(
 
     report = generate_evidently_report(current_data, ref_data)
 
-    upload_report(report)
+    upload_report(report, evidently_uri, proj_name)
 
     metrics = report.dict()
     return metrics
@@ -107,12 +116,15 @@ def create_drift_report(
 @flow(name="bank-churn-prefect-flow")
 def churn_flow(
     data_path: str,
-    tracking_uri: str = MLFLOW_TRACKING_URI,
+    mlflow_uri: str = MLFLOW_TRACKING_URI,
     experiment_name: str = MLFLOW_EXPERIMENT_NAME,
+    runname_prefix: str = MLFLOW_RUNNAME_PREFIX,
+    evidently_uri: str = EVIDENTLY_TRACKING_URI,
+    proj_name: str = EVIDENTLY_PROJECT,
+    trials: int = NUM_TRIALS,
     seed: int = DEFAULT_SEED,
-    output_report: Optional[str] = None,
 ):
-    mlflow.set_tracking_uri(tracking_uri)
+    mlflow.set_tracking_uri(mlflow_uri)
     mlflow.set_experiment(experiment_name)
 
     X_train, y_train, X_val, y_val, X_test, y_test = load_data.submit(
@@ -122,7 +134,7 @@ def churn_flow(
     X_train_tf, X_val_tf, feature_names = preprocess.submit(X_train, X_val).result()
 
     best_params = hyperparameter_tuning.submit(
-        X_train_tf, y_train, X_val_tf, y_val
+        X_train_tf, y_train, X_val_tf, y_val, runname_prefix, trials
     ).result()
     X_trv, y_trv = (
         np.append(X_train_tf, X_val_tf, axis=0),
@@ -139,12 +151,7 @@ def churn_flow(
     )
 
     metrics = create_drift_report.submit(
-        X_data, y_data, X_test, y_test, preprocessor, model
+        X_data, y_data, X_test, y_test, preprocessor, model, evidently_uri, proj_name
     ).result()
 
     print(metrics)
-
-
-if __name__ == "__main__":
-    data_path = "data/Customer-Churn-Records.csv"
-    churn_flow(data_path)

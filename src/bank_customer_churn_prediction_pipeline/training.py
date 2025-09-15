@@ -11,7 +11,7 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.metrics import f1_score, roc_auc_score
 
-from constants import DEFAULT_SEED, MLFLOW_RUNNAME_PREFIX, NUM_TRIALS
+from .constants import DEFAULT_SEED, MLFLOW_RUNNAME_PREFIX, NUM_TRIALS
 
 sampler = optuna.samplers.TPESampler(seed=DEFAULT_SEED)
 
@@ -98,17 +98,19 @@ def optuna_tuning(
     y_train,
     X_val,
     y_val,
+    runname_prefix=MLFLOW_RUNNAME_PREFIX,
+    n_trials=NUM_TRIALS,
 ):
     with mlflow.start_run(
-        run_name=f"{MLFLOW_RUNNAME_PREFIX}_{datetime.datetime.now().date()}",
+        run_name=f"{runname_prefix}_{datetime.datetime.now().date()}",
         nested=True,
     ):
         mlflow.set_tag("model", "xgboost")
-        mlflow.set_tag("identifier", MLFLOW_RUNNAME_PREFIX)
+        mlflow.set_tag("identifier", runname_prefix)
 
         xgb_objective = XGBObjective(X_train, y_train, X_val, y_val)
         study_xgb = optuna.create_study(direction="maximize", sampler=sampler)
-        study_xgb.optimize(xgb_objective, n_trials=NUM_TRIALS)
+        study_xgb.optimize(xgb_objective, n_trials=n_trials)
 
         best_params = study_xgb.best_params
         mlflow.log_params(best_params)

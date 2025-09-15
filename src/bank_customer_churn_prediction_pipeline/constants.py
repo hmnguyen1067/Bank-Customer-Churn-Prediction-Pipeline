@@ -41,4 +41,4 @@ PREDICTION_COL: str = "Preds"
 PREPROCESSOR_MODEL_NAME: str = "ChurnDataPreprocessor"
 XGB_MODEL_NAME: str = "XGBoostChurnModel"
 
-NUM_TRIALS = 50
+NUM_TRIALS = 200

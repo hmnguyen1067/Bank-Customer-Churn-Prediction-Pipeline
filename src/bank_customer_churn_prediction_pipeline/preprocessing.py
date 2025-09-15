@@ -6,7 +6,7 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from constants import CATEGORICAL_FEATURES, NUMERICAL_FEATURES, PREPROCESSOR_MODEL_NAME
+from .constants import CATEGORICAL_FEATURES, NUMERICAL_FEATURES, PREPROCESSOR_MODEL_NAME
 
 
 def build_preprocessor() -> ColumnTransformer:
