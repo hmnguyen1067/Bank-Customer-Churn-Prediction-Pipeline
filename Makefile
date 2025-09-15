@@ -13,3 +13,5 @@ report: data
 docker-up:
 	docker compose -f infra/docker-compose.yaml --env-file infra/config/config.env up -d --build
 
+docker-down:
+	docker compose -f infra/docker-compose.yaml down
