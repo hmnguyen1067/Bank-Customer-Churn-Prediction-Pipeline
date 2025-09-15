@@ -11,4 +11,5 @@ report: data
 	python ./scripts/initial_report.py
 
 docker-up:
-	docker compose --env-file config.env up -d --build
+	docker compose -f infra/docker-compose.yaml --env-file infra/config/config.env up -d --build
+
