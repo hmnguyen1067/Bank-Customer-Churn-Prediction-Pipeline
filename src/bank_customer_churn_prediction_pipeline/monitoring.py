@@ -5,11 +5,16 @@ from .constants import (
     TARGET,
     PREDICTION_COL,
     EVIDENTLY_PROJECT,
+    CONNECTION_STRING,
+    CONNECTION_STRING_DB,
+    CREATE_TABLE_STATEMENT,
 )
 from evidently import Report, DataDefinition, Dataset
 from evidently.presets import DataDriftPreset
 from evidently.ui.workspace import RemoteWorkspace
 from evidently.metrics import ValueDrift, DriftedColumnsCount, MissingValueCount
+import psycopg
+import datetime
 
 from .training import make_predictions
 
@@ -64,3 +69,32 @@ def upload_report(
         project = ws.create_project(proj_name)
 
     ws.add_run(project.id, report)
+
+
+def create_db():
+    with psycopg.connect(CONNECTION_STRING, autocommit=True) as conn:
+        res = conn.execute("SELECT 1 FROM pg_database WHERE datname='grafana'")
+        if len(res.fetchall()) == 0:
+            conn.execute("create database grafana;")
+        with psycopg.connect(CONNECTION_STRING_DB) as conn:
+            conn.execute(CREATE_TABLE_STATEMENT)
+
+
+def insert_metrics_to_db(metrics):
+    prediction_drift, num_drifted_columns, share_missing_values = (
+        metrics[0]["value"],
+        metrics[1]["value"]["count"],
+        metrics[2]["value"]["share"],
+    )
+
+    with psycopg.connect(CONNECTION_STRING_DB, autocommit=True) as conn:
+        with conn.cursor() as curr:
+            curr.execute(
+                "insert into metrics(timestamp, prediction_drift, num_drifted_columns, share_missing_values) values (%s, %s, %s, %s)",
+                (
+                    datetime.datetime.now(),
+                    prediction_drift,
+                    num_drifted_columns,
+                    share_missing_values,
+                ),
+            )

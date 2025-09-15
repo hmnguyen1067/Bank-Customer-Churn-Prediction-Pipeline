@@ -29,6 +29,8 @@ from .monitoring import (
     generate_evidently_report,
     upload_report,
     prepare_monitoring_data,
+    create_db,
+    insert_metrics_to_db,
 )
 
 
@@ -109,8 +111,14 @@ def create_drift_report(
 
     upload_report(report, evidently_uri, proj_name)
 
-    metrics = report.dict()
+    metrics = report.dict()["metrics"]
     return metrics
+
+
+@task
+def grafana_monitor(metrics):
+    create_db()
+    insert_metrics_to_db(metrics)
 
 
 @flow(name="bank-churn-prefect-flow")
@@ -153,5 +161,3 @@ def churn_flow(
     metrics = create_drift_report.submit(
         X_data, y_data, X_test, y_test, preprocessor, model, evidently_uri, proj_name
     ).result()
-
-    print(metrics)

@@ -42,3 +42,16 @@ PREPROCESSOR_MODEL_NAME: str = "ChurnDataPreprocessor"
 XGB_MODEL_NAME: str = "XGBoostChurnModel"
 
 NUM_TRIALS = 200
+
+CONNECTION_STRING = "host=localhost port=5434 user=grafana password=grafana"
+CONNECTION_STRING_DB = CONNECTION_STRING + " dbname=grafana"
+
+CREATE_TABLE_STATEMENT = """
+drop table if exists metrics;
+create table metrics(
+	timestamp timestamp,
+	prediction_drift float,
+	num_drifted_columns integer,
+	share_missing_values float
+)
+"""
