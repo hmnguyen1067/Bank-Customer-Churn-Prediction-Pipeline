@@ -161,3 +161,5 @@ def churn_flow(
     metrics = create_drift_report.submit(
         X_data, y_data, X_test, y_test, preprocessor, model, evidently_uri, proj_name
     ).result()
+
+    grafana_monitor.submit(metrics)
