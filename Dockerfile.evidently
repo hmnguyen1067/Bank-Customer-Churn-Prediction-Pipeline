@@ -1,0 +1,4 @@
+FROM evidently/evidently-service:latest
+
+# Install the necessary libraries for S3 (s3fs) support.
+RUN pip install s3fs 
