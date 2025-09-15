@@ -1,0 +1,74 @@
+include:
+  - path: prefect.yaml
+  - path: backend.yaml
+services:
+  # MLflow Tracking Server
+  mlflow_tracking_server:
+    container_name: mlflow_server
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+    depends_on:
+      mlflow_db:
+        condition: service_healthy
+      s3:
+        condition: service_healthy
+      minio_create_bucket:
+        condition: service_completed_successfully
+    restart: always
+    environment:
+      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY:-$MINIO_ROOT_USER}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_ACCESS_KEY:-$MINIO_ROOT_PASSWORD}
+      - MLFLOW_S3_ENDPOINT_URL=http://s3:${MINIO_PORT} # Replace this with remote storage endpoint e.g. s3://my-bucket in real use cases
+      - MLFLOW_S3_IGNORE_TLS=true
+    ports:
+      - "${MLFLOW_PORT}:5000"
+    command: >
+      mlflow server
+      --backend-store-uri postgresql://${MLFLOW_DB_USER}:${MLFLOW_DB_PASSWORD}@mlflow_db:5432/${MLFLOW_DB_DATABASE}
+      --host 0.0.0.0
+      --serve-artifacts
+      --artifacts-destination s3://${MLFLOW_BUCKET_NAME}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  # Evidently service for data drift monitoring
+  evidently:
+    container_name: evidently_service
+    build:
+      context: .
+      dockerfile: Dockerfile.evidently
+    ports:
+      - "8000:8000"
+    depends_on:
+      evidently_create_bucket:
+        condition: service_completed_successfully
+      s3:
+        condition: service_healthy
+    restart: always
+    environment:
+      - FSSPEC_S3_ENDPOINT_URL=http://s3:9000
+      - FSSPEC_S3_KEY=${MINIO_ACCESS_KEY:-MINIO_ROOT_USER} 
+      - FSSPEC_S3_SECRET=${MINIO_SECRET_ACCESS_KEY:-MINIO_ROOT_PASSWORD} 
+    command: --workspace s3://${EVIDENTLY_BUCKET_NAME}/workspace
+    volumes:
+      - evidently_workspace:/app/workspace
+  # Grafana
+  grafana:
+    image: grafana/grafana-enterprise
+    user: "472"
+    depends_on:
+      grafana_db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./config/grafana_datasources.yaml:/etc/grafana/provisioning/datasources/datasource.yaml:ro
+      - ./config/grafana_dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro
+      - ./dashboards:/opt/grafana/dashboards
+    restart: always
+
+volumes:
+  evidently_workspace:

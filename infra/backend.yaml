@@ -1,0 +1,105 @@
+services:
+  # MinIO server for S3-compatible object storage
+  s3:
+    container_name: s3_minio
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    restart: always
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_ADDRESS=${MINIO_ADDRESS}
+      - MINIO_PORT=${MINIO_PORT}
+      - MINIO_STORAGE_USE_HTTPS=${MINIO_STORAGE_USE_HTTPS}
+      - MINIO_CONSOLE_ADDRESS=${MINIO_CONSOLE_ADDRESS}
+    ports:
+      - "${MINIO_PORT}:9000"
+      - "${MINIO_CONSOLE_PORT}:9001"
+    volumes:
+      - s3_minio_data:/data
+    command: server /data --console-address ${MINIO_CONSOLE_ADDRESS}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+  # Create a bucket named "mlflow" on MinIO if it doesn't exist
+  minio_create_bucket:
+    container_name: minio_create_bucket
+    image: minio/mc
+    depends_on:
+      s3:
+        condition: service_healthy
+    entrypoint: >
+      bash -c "
+      mc alias set minio http://s3:9000 ${MINIO_ACCESS_KEY:-MINIO_ROOT_USER} ${MINIO_SECRET_ACCESS_KEY:-MINIO_ROOT_PASSWORD};
+      if ! mc ls minio/${MLFLOW_BUCKET_NAME}; then
+        echo 'Creating ${MLFLOW_BUCKET_NAME} bucket...';
+        mc mb minio/${MLFLOW_BUCKET_NAME}
+        mc policy download minio/${MLFLOW_BUCKET_NAME}
+        echo '${MLFLOW_BUCKET_NAME} bucket created';
+      else
+        echo '${MLFLOW_BUCKET_NAME} bucket already exists'
+      fi
+      "
+  # PostgreSQL-MLFlow database
+  mlflow_db:
+    container_name: mlflow_db
+    image: postgres:14
+    restart: always
+    environment:
+      - POSTGRES_USER=${MLFLOW_DB_USER}
+      - POSTGRES_PASSWORD=${MLFLOW_DB_PASSWORD}
+      - POSTGRES_DB=${MLFLOW_DB_DATABASE}
+      - POSTGRES_PORT=${MLFLOW_DB_PORT}
+    ports:
+      - "${MLFLOW_DB_PORT}:5432"
+    volumes:
+      - mlflow_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${MLFLOW_DB_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+  # PostgreSQL-Grafana database
+  grafana_db:
+    container_name: grafana_db
+    image: postgres:14
+    restart: always
+    environment:
+      - POSTGRES_USER=${GRAFANA_DB_USER}
+      - POSTGRES_PASSWORD=${GRAFANA_DB_PASSWORD}
+      - POSTGRES_DB=${GRAFANA_DB_DATABASE}
+      - POSTGRES_PORT=${GRAFANA_DB_PORT}
+    ports:
+      - "${GRAFANA_DB_PORT}:5432"
+    volumes:
+      - grafana_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${GRAFANA_DB_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+  # Create a bucket named "mlflow" on MinIO if it doesn't exist
+  evidently_create_bucket:
+    container_name: evidently_create_bucket
+    image: minio/mc
+    depends_on:
+      s3:
+        condition: service_healthy
+    entrypoint: >
+      bash -c "
+      mc alias set minio http://s3:9000 ${MINIO_ACCESS_KEY:-MINIO_ROOT_USER} ${MINIO_SECRET_ACCESS_KEY:-MINIO_ROOT_PASSWORD};
+      if ! mc ls minio/${EVIDENTLY_BUCKET_NAME}; then
+        echo 'Creating ${EVIDENTLY_BUCKET_NAME} bucket...';
+        mc mb minio/${EVIDENTLY_BUCKET_NAME}
+        mc policy download minio/${EVIDENTLY_BUCKET_NAME}
+        echo '${EVIDENTLY_BUCKET_NAME} bucket created';
+      else
+        echo '${EVIDENTLY_BUCKET_NAME} bucket already exists'
+      fi
+      "
+
+volumes:
+  mlflow_data:
+  grafana_data:
+  s3_minio_data:
