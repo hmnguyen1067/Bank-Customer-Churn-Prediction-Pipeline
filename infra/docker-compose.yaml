@@ -69,6 +69,11 @@ services:
       - ./config/grafana_dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro
       - ./dashboards:/opt/grafana/dashboards
     restart: always
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
 
 volumes:
   evidently_workspace:
