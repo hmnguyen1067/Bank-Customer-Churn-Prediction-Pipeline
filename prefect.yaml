@@ -1,0 +1,47 @@
+services:
+  # Prefect database
+  prefect_db:
+    container_name: prefect_db
+    image: postgres:14
+    environment:
+      - POSTGRES_USER=${PREFECT_DB_USER}
+      - POSTGRES_PASSWORD=${PREFECT_DB_PASSWORD}
+      - POSTGRES_DB=${PREFECT_DB_DATABASE}
+    restart: always
+    ports:
+      - "${PREFECT_DB_PORT}:5432"
+    # networks:
+    #   - backend
+    volumes:
+      - prefect_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PREFECT_DB_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  # Prefect server
+  prefect-server:
+    image: prefecthq/prefect:3-latest
+    depends_on:
+      prefect_db:
+        condition: service_healthy
+    environment:
+      - PREFECT_UI_URL=http://127.0.0.1:4200/api
+      - PREFECT_API_URL=http://127.0.0.1:4200/api
+      - PREFECT_API_DATABASE_CONNECTION_URL=postgresql+asyncpg://${PREFECT_DB_USER}:${PREFECT_DB_PASSWORD}@prefect_db:5432/${PREFECT_DB_DATABASE}
+      - PREFECT_SERVER_API_HOST=0.0.0.0
+    # networks:
+    #   - backend
+    volumes:
+      - prefect_server_data:/root/.prefect
+    entrypoint: ["/opt/prefect/entrypoint.sh", "prefect", "server", "start"]
+    ports:
+      - "4200:4200"
+
+volumes:
+  prefect_data:
+  prefect_server_data:
+
+# networks:
+#   backend:
+#     driver: bridge
