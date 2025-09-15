@@ -5,7 +5,7 @@ data_path = "data/Customer-Churn-Records.csv"
 save_path = "data/initial_report.html"
 
 records = pd.read_csv(data_path)
-records.drop(columns=["RowNumber", "CustomerId", "Surname"], inplace=True)  
+records.drop(columns=["RowNumber", "CustomerId", "Surname"], inplace=True)
 
 profile = ProfileReport(records, title="Initial Profiling Report", explorative=True)
 
