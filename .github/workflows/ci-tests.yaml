@@ -1,0 +1,15 @@
+name: CI-tests
+on:
+  push: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: prefix-dev/setup-pixi@v0.9.0
+        with:
+          pixi-version: v0.55.0
+          cache: true
+      - name: Install dependencies and run tests
+        run: pixi add python=3.12 && pixi install && pixi run pytest tests
