@@ -34,6 +34,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
   # Evidently service for data drift monitoring
   evidently:
     container_name: evidently_service
@@ -55,6 +56,7 @@ services:
     command: --workspace s3://${EVIDENTLY_BUCKET_NAME}/workspace
     volumes:
       - evidently_workspace:/app/workspace
+
   # Grafana
   grafana:
     image: grafana/grafana-enterprise
@@ -74,6 +76,26 @@ services:
     restart: always
     ports:
       - "8080:8080"
+
+  # FastAPI inference service
+  api:
+    container_name: churn_api
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    depends_on:
+      mlflow_tracking_server:
+        condition: service_healthy
+      s3:
+        condition: service_healthy
+    environment:
+      # - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY:-$MINIO_ROOT_USER}
+      # - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_ACCESS_KEY:-$MINIO_ROOT_PASSWORD}
+      # - MLFLOW_S3_ENDPOINT_URL=http://s3:${MINIO_PORT}
+      # - MLFLOW_S3_IGNORE_TLS=true
+      - MLFLOW_TRACKING_URI=http://mlflow_server:5000
+    ports:
+      - "${API_PORT:-8001}:8001"
 
 volumes:
   evidently_workspace:

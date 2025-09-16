@@ -1,0 +1,26 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    MLFLOW_S3_IGNORE_TLS=true
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /code
+
+RUN pip install --no-cache-dir fastapi \
+    "uvicorn[standard]" \
+    "mlflow[extras]" \
+    scikit-learn \
+    xgboost \
+    pandas \
+    s3fs
+
+COPY ./api /code/api
+
+EXPOSE 8001
+
+ENTRYPOINT ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
