@@ -1,5 +1,9 @@
 SHELL = /bin/bash
 
+env-setup:
+	pixi install
+	pixi run pre-commit install
+
 data:
 	mkdir -p ./data
 	curl -L -o ./data/bank-customer-churn.zip\
@@ -15,3 +19,6 @@ docker-up:
 
 docker-down:
 	docker compose -f infra/docker-compose.yaml down
+
+test:
+	pytest tests
