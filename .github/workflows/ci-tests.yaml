@@ -12,4 +12,4 @@ jobs:
           pixi-version: v0.55.0
           cache: true
       - name: Install dependencies and run tests
-        run: pixi install && pixi add python=3.12 && pixi run pytest --ignore=tests/test_main.py
+        run: pixi install && pixi add python=3.12 && pixi run pytest --ignore=tests/api/test_main.py
