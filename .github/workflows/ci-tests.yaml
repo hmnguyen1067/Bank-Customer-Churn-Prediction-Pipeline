@@ -1,6 +1,6 @@
 name: CI-tests
 on:
-  push: [ main ]
+  push
 
 jobs:
   test:
