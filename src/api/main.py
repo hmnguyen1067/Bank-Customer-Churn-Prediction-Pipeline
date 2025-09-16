@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
         app.state.bundle = bundle
     except Exception as e:
         app.state.bundle = None
-        print(f"[startup] failed to load models: {e}")
+        print(f"Failed to load models: {e}")
 
     yield
 
@@ -38,14 +38,14 @@ app = FastAPI(title="Churn Prediction API", lifespan=lifespan)
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok"}
+    return {"Status": "OK"}
 
 
 @app.get("/ready")
 def ready() -> dict[str, str]:
     if getattr(app.state, "bundle", None) is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
-    return {"status": "ready"}
+    return {"Status": "READY"}
 
 
 @app.get("/metadata", response_model=MetadataResponse)

@@ -57,4 +57,4 @@ def make_predictions(model, X_test: pd.DataFrame, preprocessor) -> np.ndarray:
 
 def predict_labels(bundle: ModelBundle, df) -> list[int]:
     preds = make_predictions(bundle.model, df, bundle.preprocessor)
-    return list(preds.astype(int).tolist())
+    return list(preds)
