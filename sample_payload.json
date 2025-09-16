@@ -1,0 +1,19 @@
+{
+  "instances": [
+    {
+      "Geography": "France",
+      "Gender": "Female",
+      "NumOfProducts": 2,
+      "HasCrCard": 1,
+      "IsActiveMember": 1,
+      "Satisfaction Score": 4,
+      "Card Type": "Gold",
+      "CreditScore": 650,
+      "Age": 42,
+      "Tenure": 5,
+      "Balance": 12345.67,
+      "EstimatedSalary": 80000.0,
+      "Point Earned": 100.0
+    }
+  ]
+}
