@@ -12,7 +12,11 @@ from .constants import CATEGORICAL_FEATURES, NUMERICAL_FEATURES, PREPROCESSOR_MO
 def build_preprocessor() -> ColumnTransformer:
     return ColumnTransformer(
         transformers=[
-            ("oh", OneHotEncoder(handle_unknown="ignore"), CATEGORICAL_FEATURES),
+            (
+                "oh",
+                OneHotEncoder(handle_unknown="ignore", sparse_output=False),
+                CATEGORICAL_FEATURES,
+            ),
             ("scaler", StandardScaler(), NUMERICAL_FEATURES),
         ]
     )

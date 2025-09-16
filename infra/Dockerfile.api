@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl && \
     rm -rf /var/lib/apt/lists/*
 
-WORKDIR /code
+WORKDIR /src
 
 RUN pip install --no-cache-dir fastapi \
     "uvicorn[standard]" \
@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir fastapi \
     pandas \
     s3fs
 
-COPY ./api /code/api
+COPY ./src/api /src/api
 
 EXPOSE 8001
 
