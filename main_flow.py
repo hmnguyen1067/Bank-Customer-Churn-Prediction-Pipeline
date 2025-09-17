@@ -1,15 +1,10 @@
 import argparse
 
-from bank_customer_churn_prediction_pipeline.flow import churn_flow
 from bank_customer_churn_prediction_pipeline.constants import (
-    DEFAULT_SEED,
-    MLFLOW_TRACKING_URI,
-    MLFLOW_EXPERIMENT_NAME,
-    EVIDENTLY_TRACKING_URI,
-    EVIDENTLY_PROJECT,
-    NUM_TRIALS,
-    MLFLOW_RUNNAME_PREFIX,
-)
+    DEFAULT_SEED, EVIDENTLY_PROJECT, EVIDENTLY_TRACKING_URI,
+    MLFLOW_EXPERIMENT_NAME, MLFLOW_RUNNAME_PREFIX, MLFLOW_TRACKING_URI,
+    NUM_TRIALS)
+from bank_customer_churn_prediction_pipeline.flow import churn_flow
 
 
 def parse_args() -> argparse.Namespace:

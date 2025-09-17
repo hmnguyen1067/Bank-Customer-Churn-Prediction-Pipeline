@@ -1,7 +1,9 @@
 from typing import Tuple
-from .constants import DROPPED_COLS, TARGET
+
 import pandas as pd
 from sklearn.model_selection import train_test_split
+
+from .constants import DROPPED_COLS, TARGET
 
 
 def read_data(data_path: str) -> pd.DataFrame:

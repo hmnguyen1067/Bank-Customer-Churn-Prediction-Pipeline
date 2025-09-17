@@ -5,9 +5,8 @@ import matplotlib.pyplot as plt
 import mlflow
 import numpy as np
 import optuna
-import xgboost as xgb
 import pandas as pd
-
+import xgboost as xgb
 from sklearn.compose import ColumnTransformer
 from sklearn.metrics import f1_score, roc_auc_score
 

@@ -1,121 +1,251 @@
+from unittest.mock import MagicMock, patch
+
 import numpy as np
-import pandas as pd
 
-import bank_customer_churn_prediction_pipeline.flow as fl
-
-
-def test_load_data_task_calls_split_data(monkeypatch, sample_df):
-    calls = {}
-
-    def fake_read_data(p):  # noqa: D401, ARG001
-        return sample_df
-
-    def fake_split_data(df, seed):  # noqa: D401, ARG001
-        calls["split"] = True
-        return ("Xtr", "ytr", "Xv", "yv", "Xt", "yt")
-
-    monkeypatch.setattr(fl, "read_data", fake_read_data)
-    monkeypatch.setattr(fl, "split_data", fake_split_data)
-
-    out = fl.load_data.fn("/path.csv", seed=123)
-    assert calls.get("split") is True
-    assert out == ("Xtr", "ytr", "Xv", "yv", "Xt", "yt")
+from bank_customer_churn_prediction_pipeline.constants import (
+    EVIDENTLY_PROJECT, EVIDENTLY_TRACKING_URI, PREPROCESSOR_MODEL_NAME,
+    XGB_MODEL_NAME)
+from bank_customer_churn_prediction_pipeline.flow import (
+    create_drift_report, grafana_monitor, hyperparameter_tuning, load_data,
+    load_registered_artifacts, preprocess, train_model)
 
 
-def test_preprocess_task_delegates(monkeypatch):
-    def fake_preprocess_data(X_tr, X_val):  # noqa: D401, ARG001
-        return ("Xtr_tf", "Xval_tf", ["f1", "f2"])
+class TestLoadDataTask:
+    @patch("bank_customer_churn_prediction_pipeline.flow.split_data")
+    @patch("bank_customer_churn_prediction_pipeline.flow.read_data")
+    def test_load_data_task(self, mock_read_data, mock_split_data, sample_data):
+        """Test load_data task"""
+        data_path = "test_path.csv"
+        seed = 42
 
-    monkeypatch.setattr(fl, "preprocess_data", fake_preprocess_data)
-    out = fl.preprocess.fn("Xtr", "Xval")
-    assert out == ("Xtr_tf", "Xval_tf", ["f1", "f2"])
+        mock_read_data.return_value = sample_data
+        mock_split_data.return_value = (
+            sample_data.iloc[:2],
+            [0, 1],  # X_train, y_train
+            sample_data.iloc[2:3],
+            [1],  # X_val, y_val
+            sample_data.iloc[3:4],
+            [0],  # X_test, y_test
+        )
 
+        result = load_data(data_path, seed)
 
-def test_hyperparameter_tuning_task_delegates(monkeypatch):
-    def fake_optuna_tuning(*a, **k):  # noqa: D401, ARG002
-        return {"n_estimators": 5}
+        mock_read_data.assert_called_once_with(data_path)
+        mock_split_data.assert_called_once_with(sample_data, seed)
+        assert len(result) == 6  # Returns 6 components
 
-    monkeypatch.setattr(fl, "optuna_tuning", fake_optuna_tuning)
-    out = fl.hyperparameter_tuning.fn(
-        "Xtr", "ytr", "Xval", "yval", runname_prefix="r", n_trials=1
-    )
-    assert out == {"n_estimators": 5}
-
-
-def test_load_registered_artifacts_task(monkeypatch):
-    class P:  # noqa: D401
-        pass
-
-    class M:  # noqa: D401
-        pass
-
-    import mlflow
-
-    monkeypatch.setattr(mlflow.sklearn, "load_model", lambda *a, **k: P())
-    monkeypatch.setattr(mlflow.xgboost, "load_model", lambda *a, **k: M())
-
-    pp, model = fl.load_registered_artifacts.fn()
-    assert isinstance(pp, P)
-    assert isinstance(model, M)
+    @patch("bank_customer_churn_prediction_pipeline.flow.split_data")
+    @patch("bank_customer_churn_prediction_pipeline.flow.read_data")
+    def test_load_data_task_with_retry(
+        self, mock_read_data, mock_split_data, sample_data
+    ):
+        """Test that load_data task has retry configuration"""
+        # Check that the task has retry configuration
+        assert load_data.retries == 3
+        assert load_data.retry_delay_seconds == [2, 5, 15]
 
 
-def test_create_drift_report_pipeline(monkeypatch):
-    calls = {}
+class TestPreprocessTask:
+    @patch("bank_customer_churn_prediction_pipeline.flow.preprocess_data")
+    def test_preprocess_task(self, mock_preprocess_data, sample_features):
+        """Test preprocess task"""
+        X_train = sample_features.copy()
+        X_val = sample_features.copy()
 
-    def fake_data_def():  # noqa: D401
-        return "dd"
+        mock_transformed_train = np.random.rand(3, 10)
+        mock_transformed_val = np.random.rand(3, 10)
+        mock_feature_names = ["feature_1", "feature_2"]
 
-    def fake_prep(X, pp, m):  # noqa: D401, ARG001
-        return X.assign(Preds=0)
+        mock_preprocess_data.return_value = (
+            mock_transformed_train,
+            mock_transformed_val,
+            mock_feature_names,
+        )
 
-    def fake_dataset(X, y, dd):  # noqa: D401, ARG001
-        return (X, y, dd)
+        result = preprocess(X_train, X_val)
 
-    class Report:
-        def dict(self):
-            return {"metrics": [1, 2, 3]}
-
-    def fake_report(cur, ref):  # noqa: D401, ARG001
-        return Report()
-
-    def fake_upload(report, uri, proj):  # noqa: D401, ARG001
-        calls["uploaded"] = True
-
-    monkeypatch.setattr(fl, "create_evidently_data_def", fake_data_def)
-    monkeypatch.setattr(fl, "prepare_monitoring_data", fake_prep)
-    monkeypatch.setattr(fl, "create_evidently_dataset", fake_dataset)
-    monkeypatch.setattr(fl, "generate_evidently_report", fake_report)
-    monkeypatch.setattr(fl, "upload_report", fake_upload)
-
-    X_tr = pd.DataFrame({"a": [1, 2]})
-    y_tr = np.array([0, 1])
-    X_t = pd.DataFrame({"a": [3, 4]})
-    y_t = np.array([1, 0])
-    metrics = fl.create_drift_report.fn(
-        X_tr,
-        y_tr,
-        X_t,
-        y_t,
-        preprocessor=None,
-        model=None,
-        evidently_uri="u",
-        proj_name="p",
-    )
-    assert metrics == [1, 2, 3]
-    assert calls.get("uploaded") is True
+        mock_preprocess_data.assert_called_once_with(X_train, X_val)
+        assert len(result) == 3  # Returns transformed data and feature names
 
 
-def test_grafana_monitor_delegates(monkeypatch):
-    calls = {"db": False, "ins": False}
+class TestHyperparameterTuningTask:
+    @patch("bank_customer_churn_prediction_pipeline.flow.optuna_tuning")
+    def test_hyperparameter_tuning_task(self, mock_optuna_tuning):
+        """Test hyperparameter tuning task"""
+        X_train = np.random.rand(100, 10)
+        y_train = np.random.randint(0, 2, 100)
+        X_val = np.random.rand(50, 10)
+        y_val = np.random.randint(0, 2, 50)
+        runname_prefix = "test_prefix"
+        n_trials = 10
 
-    def fake_create_db():  # noqa: D401
-        calls["db"] = True
+        mock_best_params = {"n_estimators": 100, "learning_rate": 0.1}
+        mock_optuna_tuning.return_value = mock_best_params
 
-    def fake_insert(metrics):  # noqa: D401, ARG001
-        calls["ins"] = True
+        result = hyperparameter_tuning(
+            X_train, y_train, X_val, y_val, runname_prefix, n_trials
+        )
 
-    monkeypatch.setattr(fl, "create_db", fake_create_db)
-    monkeypatch.setattr(fl, "insert_metrics_to_db", fake_insert)
+        mock_optuna_tuning.assert_called_once_with(
+            X_train,
+            y_train,
+            X_val,
+            y_val,
+            runname_prefix=runname_prefix,
+            n_trials=n_trials,
+        )
+        assert result == mock_best_params
 
-    fl.grafana_monitor.fn([1, 2])
-    assert calls["db"] and calls["ins"]
+
+class TestTrainModelTask:
+    @patch("bank_customer_churn_prediction_pipeline.flow.mlflow")
+    @patch("bank_customer_churn_prediction_pipeline.flow.train_best_xgb_model")
+    @patch("bank_customer_churn_prediction_pipeline.flow.plot_feature_importance")
+    def test_train_model_task(
+        self, mock_plot_importance, mock_train_model, mock_mlflow
+    ):
+        """Test train_model task"""
+        X_train = np.random.rand(100, 10)
+        y_train = np.random.randint(0, 2, 100)
+        best_params = {"n_estimators": 100, "learning_rate": 0.1}
+        feat_names = ["feature_1", "feature_2"]
+
+        mock_model = MagicMock()
+        mock_train_model.return_value = mock_model
+
+        mock_figure = MagicMock()
+        mock_plot_importance.return_value = mock_figure
+
+        mock_dataset = MagicMock()
+        mock_mlflow.data.from_numpy.return_value = mock_dataset
+
+        train_model(X_train, y_train, best_params, feat_names)
+
+        # Check model training
+        mock_train_model.assert_called_once_with(X_train, y_train, best_params)
+
+        # Check MLflow logging
+        mock_mlflow.start_run.assert_called_once()
+        mock_mlflow.xgboost.log_model.assert_called_once()
+        mock_mlflow.data.from_numpy.assert_called_once_with(X_train, targets=y_train)
+        mock_mlflow.log_input.assert_called_once()
+        mock_mlflow.log_figure.assert_called_once_with(
+            mock_figure, artifact_file="feature_importance.png"
+        )
+
+        # Check feature importance plotting
+        mock_plot_importance.assert_called_once_with(mock_model, feat_names=feat_names)
+
+
+class TestLoadRegisteredArtifactsTask:
+    @patch("bank_customer_churn_prediction_pipeline.flow.mlflow")
+    def test_load_registered_artifacts_default(self, mock_mlflow):
+        """Test load_registered_artifacts with default parameters"""
+        mock_preprocessor = MagicMock()
+        mock_model = MagicMock()
+
+        mock_mlflow.sklearn.load_model.return_value = mock_preprocessor
+        mock_mlflow.xgboost.load_model.return_value = mock_model
+
+        preprocessor, model = load_registered_artifacts()
+
+        # Check default model names are used
+        mock_mlflow.sklearn.load_model.assert_called_once_with(
+            f"models:/{PREPROCESSOR_MODEL_NAME}/latest"
+        )
+        mock_mlflow.xgboost.load_model.assert_called_once_with(
+            f"models:/{XGB_MODEL_NAME}/latest"
+        )
+
+        assert preprocessor == mock_preprocessor
+        assert model == mock_model
+
+    @patch("bank_customer_churn_prediction_pipeline.flow.mlflow")
+    def test_load_registered_artifacts_custom_names(self, mock_mlflow):
+        """Test load_registered_artifacts with custom model names"""
+        custom_pp_name = "CustomPreprocessor"
+        custom_model_name = "CustomModel"
+
+        mock_preprocessor = MagicMock()
+        mock_model = MagicMock()
+
+        mock_mlflow.sklearn.load_model.return_value = mock_preprocessor
+        mock_mlflow.xgboost.load_model.return_value = mock_model
+
+        load_registered_artifacts(custom_pp_name, custom_model_name)
+
+        mock_mlflow.sklearn.load_model.assert_called_once_with(
+            f"models:/{custom_pp_name}/latest"
+        )
+        mock_mlflow.xgboost.load_model.assert_called_once_with(
+            f"models:/{custom_model_name}/latest"
+        )
+
+
+class TestCreateDriftReportTask:
+    @patch("bank_customer_churn_prediction_pipeline.flow.upload_report")
+    @patch("bank_customer_churn_prediction_pipeline.flow.generate_evidently_report")
+    @patch("bank_customer_churn_prediction_pipeline.flow.create_evidently_dataset")
+    @patch("bank_customer_churn_prediction_pipeline.flow.prepare_monitoring_data")
+    @patch("bank_customer_churn_prediction_pipeline.flow.create_evidently_data_def")
+    def test_create_drift_report_task(
+        self,
+        mock_data_def,
+        mock_prepare_data,
+        mock_create_dataset,
+        mock_generate_report,
+        mock_upload_report,
+        sample_features,
+        sample_targets,
+    ):
+        """Test create_drift_report task"""
+        X_tr = sample_features.copy()
+        y_tr = sample_targets.copy()
+        X_t = sample_features.copy()
+        y_t = sample_targets.copy()
+        preprocessor = MagicMock()
+        model = MagicMock()
+
+        # Mock returns
+        mock_data_definition = MagicMock()
+        mock_data_def.return_value = mock_data_definition
+
+        mock_prepared_tr = sample_features.copy()
+        mock_prepared_t = sample_features.copy()
+        mock_prepare_data.side_effect = [mock_prepared_tr, mock_prepared_t]
+
+        mock_current_dataset = MagicMock()
+        mock_ref_dataset = MagicMock()
+        mock_create_dataset.side_effect = [mock_current_dataset, mock_ref_dataset]
+
+        mock_report = MagicMock()
+        mock_report.dict.return_value = {"metrics": [{"test": "data"}]}
+        mock_generate_report.return_value = mock_report
+
+        result = create_drift_report(X_tr, y_tr, X_t, y_t, preprocessor, model)
+
+        # Check function calls
+        mock_data_def.assert_called_once()
+        assert mock_prepare_data.call_count == 2
+        assert mock_create_dataset.call_count == 2
+        mock_generate_report.assert_called_once_with(
+            mock_current_dataset, mock_ref_dataset
+        )
+        mock_upload_report.assert_called_once_with(
+            mock_report, EVIDENTLY_TRACKING_URI, EVIDENTLY_PROJECT
+        )
+
+        assert result == [{"test": "data"}]
+
+
+class TestGrafanaMonitorTask:
+    @patch("bank_customer_churn_prediction_pipeline.flow.insert_metrics_to_db")
+    @patch("bank_customer_churn_prediction_pipeline.flow.create_db")
+    def test_grafana_monitor_task(self, mock_create_db, mock_insert_metrics):
+        """Test grafana_monitor task"""
+        metrics = [{"test": "metrics"}]
+
+        grafana_monitor(metrics)
+
+        mock_create_db.assert_called_once()
+        mock_insert_metrics.assert_called_once_with(metrics)

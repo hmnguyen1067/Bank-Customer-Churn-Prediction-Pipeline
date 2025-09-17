@@ -1,15 +1,13 @@
 import os
-from fastapi import FastAPI, HTTPException
 from contextlib import asynccontextmanager
 
-from .inference import ValidationError, validate_and_frame, predict_labels
+from fastapi import FastAPI, HTTPException
+
+from .inference import ValidationError, predict_labels, validate_and_frame
 from .loader import ModelBundle, load_bundle
 from .schemas import MetadataResponse, PredictRequest, PredictResponse
-from .serving_constants import (
-    MLFLOW_TRACKING_URI,
-    PREPROCESSOR_MODEL_NAME,
-    XGB_MODEL_NAME,
-)
+from .serving_constants import (MLFLOW_TRACKING_URI, PREPROCESSOR_MODEL_NAME,
+                                XGB_MODEL_NAME)
 
 
 @asynccontextmanager

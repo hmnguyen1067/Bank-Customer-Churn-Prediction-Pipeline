@@ -1,11 +1,11 @@
 from typing import Any, Dict, Iterable, List
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 import xgboost as xgb
 
-from .serving_constants import CATEGORICAL_FEATURES, NUMERICAL_FEATURES
 from .loader import ModelBundle
-
+from .serving_constants import CATEGORICAL_FEATURES, NUMERICAL_FEATURES
 
 FEATURE_ORDER: List[str] = list(CATEGORICAL_FEATURES) + list(NUMERICAL_FEATURES)
 
@@ -57,4 +57,4 @@ def make_predictions(model, X_test: pd.DataFrame, preprocessor) -> np.ndarray:
 
 def predict_labels(bundle: ModelBundle, df) -> list[int]:
     preds = make_predictions(bundle.model, df, bundle.preprocessor)
-    return list(preds)
+    return list(preds.tolist())

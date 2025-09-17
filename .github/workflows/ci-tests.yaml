@@ -15,4 +15,4 @@ jobs:
         run: |
           pixi install && \
           pixi add python=3.12 && \
-          pixi run pytest --ignore=tests/api/test_main.py --ignore=tests/bank_customer_churn_prediction_pipeline/test_flow_tasks.py
+          pixi run pytest

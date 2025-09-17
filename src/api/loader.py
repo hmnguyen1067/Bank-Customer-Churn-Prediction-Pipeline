@@ -4,13 +4,9 @@ from typing import Any, Dict, Optional
 import mlflow
 from mlflow.tracking import MlflowClient
 
-from .serving_constants import (
-    MLFLOW_TRACKING_URI,
-    PREPROCESSOR_MODEL_NAME,
-    XGB_MODEL_NAME,
-    CATEGORICAL_FEATURES,
-    NUMERICAL_FEATURES,
-)
+from .serving_constants import (CATEGORICAL_FEATURES, MLFLOW_TRACKING_URI,
+                                NUMERICAL_FEATURES, PREPROCESSOR_MODEL_NAME,
+                                XGB_MODEL_NAME)
 
 
 @dataclass

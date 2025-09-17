@@ -3,35 +3,19 @@ import numpy as np
 import pandas as pd
 from prefect import flow, task
 
-from .constants import (
-    MLFLOW_EXPERIMENT_NAME,
-    DEFAULT_SEED,
-    MLFLOW_TRACKING_URI,
-    PREPROCESSOR_MODEL_NAME,
-    XGB_MODEL_NAME,
-    MLFLOW_RUNNAME_PREFIX,
-    EVIDENTLY_TRACKING_URI,
-    EVIDENTLY_PROJECT,
-    NUM_TRIALS,
-)
+from .constants import (DEFAULT_SEED, EVIDENTLY_PROJECT,
+                        EVIDENTLY_TRACKING_URI, MLFLOW_EXPERIMENT_NAME,
+                        MLFLOW_RUNNAME_PREFIX, MLFLOW_TRACKING_URI, NUM_TRIALS,
+                        PREPROCESSOR_MODEL_NAME, XGB_MODEL_NAME)
 from .data_io import read_data, split_data
-
+from .monitoring import (create_db, create_evidently_data_def,
+                         create_evidently_dataset, generate_evidently_report,
+                         insert_metrics_to_db, prepare_monitoring_data,
+                         upload_report)
 # from .evidently_report import generate_evidently_report
 from .preprocessing import preprocess_data
-from .training import (
-    optuna_tuning,
-    train_best_xgb_model,
-    plot_feature_importance,
-)
-from .monitoring import (
-    create_evidently_data_def,
-    create_evidently_dataset,
-    generate_evidently_report,
-    upload_report,
-    prepare_monitoring_data,
-    create_db,
-    insert_metrics_to_db,
-)
+from .training import (optuna_tuning, plot_feature_importance,
+                       train_best_xgb_model)
 
 
 @task(retries=3, retry_delay_seconds=[2, 5, 15])

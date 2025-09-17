@@ -1,21 +1,16 @@
-from .constants import (
-    EVIDENTLY_TRACKING_URI,
-    NUMERICAL_FEATURES,
-    CATEGORICAL_FEATURES,
-    TARGET,
-    PREDICTION_COL,
-    EVIDENTLY_PROJECT,
-    CONNECTION_STRING,
-    CONNECTION_STRING_DB,
-    CREATE_TABLE_STATEMENT,
-)
-from evidently import Report, DataDefinition, Dataset
-from evidently.presets import DataDriftPreset
-from evidently.ui.workspace import RemoteWorkspace
-from evidently.metrics import ValueDrift, DriftedColumnsCount, MissingValueCount
-import psycopg
 import datetime
 
+import psycopg
+from evidently import DataDefinition, Dataset, Report
+from evidently.metrics import (DriftedColumnsCount, MissingValueCount,
+                               ValueDrift)
+from evidently.presets import DataDriftPreset
+from evidently.ui.workspace import RemoteWorkspace
+
+from .constants import (CATEGORICAL_FEATURES, CONNECTION_STRING,
+                        CONNECTION_STRING_DB, CREATE_TABLE_STATEMENT,
+                        EVIDENTLY_PROJECT, EVIDENTLY_TRACKING_URI,
+                        NUMERICAL_FEATURES, PREDICTION_COL, TARGET)
 from .training import make_predictions
 
 

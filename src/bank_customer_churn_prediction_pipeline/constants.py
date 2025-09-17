@@ -1,6 +1,5 @@
 import os
 
-
 DEFAULT_SEED: int = 42
 
 # MLflow configuration
