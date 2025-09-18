@@ -12,7 +12,6 @@ from .monitoring import (create_db, create_evidently_data_def,
                          create_evidently_dataset, generate_evidently_report,
                          insert_metrics_to_db, prepare_monitoring_data,
                          upload_report)
-# from .evidently_report import generate_evidently_report
 from .preprocessing import preprocess_data
 from .training import (optuna_tuning, plot_feature_importance,
                        train_best_xgb_model)

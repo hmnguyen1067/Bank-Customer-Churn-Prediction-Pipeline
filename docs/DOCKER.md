@@ -19,25 +19,24 @@ This guide explains how to run the local stack (MLflow, MinIO, Postgres, Prefect
   - `docker compose -f infra/backend.yaml -f infra/prefect.yaml -f infra/docker-compose.yaml --env-file infra/config/config.env up -d --build`
 
 ## Service Endpoints
-- MLflow UI: `http://localhost:${MLFLOW_PORT}` (default `5000`)
+- MLflow UI: `http://localhost:5000`
   - Tracks experiments; serves artifacts to MinIO S3.
-- MinIO S3 API: `http://localhost:${MINIO_PORT}` (default `9000`)
-- MinIO Console: `http://localhost:${MINIO_CONSOLE_PORT}` (default `9001`)
-  - Login with `${MINIO_ROOT_USER}/${MINIO_ROOT_PASSWORD}` (defaults in `config.env`). Buckets `${MLFLOW_BUCKET_NAME}` and `${EVIDENTLY_BUCKET_NAME}` are auto-created.
+- MinIO S3 API: `http://localhost:9000`
+- MinIO Console: `http://localhost:$9001`
+  - Login with `${MINIO_ROOT_USER}/${MINIO_ROOT_PASSWORD}` (defaults in `config.env`). Buckets `mlflow` and `evidently` are auto-created.
 - Prefect UI: `http://localhost:4200`
-- Grafana UI: `http://localhost:3000` (default admin/admin on first login; you will be prompted to change password)
+- Grafana UI: `http://localhost:3000` (default `admin`/`admin` on first login; you will be prompted to change password)
   - A PostgreSQL datasource and dashboards are provisioned from `infra/config` and `infra/dashboards`.
-- API: `http://localhost:${API_PORT}` (default `8001`)
+- API: `http://localhost:8001`
   - Endpoints: `/health`, `/ready`, `/metadata`, `/predict`.
 - Adminer (DB UI): `http://localhost:8080`
   - Connect to `mlflow_db`, `prefect_db`, or `grafana_db` (server) with the credentials in `config.env`; or connect via host ports below.
 
-## Host Ports and Credentials (defaults)
-- MLflow DB (Postgres): `localhost:${MLFLOW_DB_PORT}` (default `5432`), user `mlflow`, password `mlflow`, db `mlflow`.
-- Prefect DB (Postgres): `localhost:${PREFECT_DB_PORT}` (default `5433`), user `prefect`, password `prefect`, db `prefect`.
-- Grafana DB (Postgres): `localhost:${GRAFANA_DB_PORT}` (default `5434`), user `grafana`, password `grafana`, db `grafana`.
-- MinIO S3 API/Console: `localhost:${MINIO_PORT}`/`localhost:${MINIO_CONSOLE_PORT}` (defaults `9000/9001`).
-- API: `localhost:${API_PORT}` (default `8001`).
+## Storages and Credentials
+- MLflow DB (Postgres): `localhost:5432`, user `mlflow`, password `mlflow`, db `mlflow`.
+- Prefect DB (Postgres): `localhost:5433`, user `prefect`, password `prefect`, db `prefect`.
+- Grafana DB (Postgres): `localhost:5434`, user `grafana`, password `grafana`, db `grafana`.
+- MinIO S3 API/Console: `localhost:9000`/`localhost:9001`.
 
 ## How It’s Wired
 - MLflow server runs with `--serve-artifacts` and stores artifacts in `s3://${MLFLOW_BUCKET_NAME}` via MinIO. S3 credentials come from `MINIO_ACCESS_KEY`/`MINIO_SECRET_ACCESS_KEY` (defaults mapped to the MinIO root creds).
@@ -56,7 +55,7 @@ This guide explains how to run the local stack (MLflow, MinIO, Postgres, Prefect
    - Grafana: “Churn dashboard” showing metrics written by the flow.
 
 ## Use the FastAPI Inference API
-1) Start the stack: `make docker-up` (builds and runs the `api` service).
+1) Make sure the stack is up: `make docker-up` (builds and runs the `api` service).
 2) Ensure the preprocessor and model are registered in MLflow (run the training flow above if needed).
 3) Send a sample request:
    - Save as `sample_payload.json`:
@@ -95,14 +94,14 @@ This guide explains how to run the local stack (MLflow, MinIO, Postgres, Prefect
   - Evidently: `EVIDENTLY_BUCKET_NAME`.
   - Grafana DB: `GRAFANA_DB_*`, `GRAFANA_DB_PORT`.
   - API: `API_PORT`.
-- Change ports here if something is already in use on your machine.
+- Change ports here if something is already in use on your machine (MacOS has AirReceiver runned on port 5000).
 - If you change bucket names or credentials, update both MinIO creds and the bucket envs; the compose jobs will create missing buckets at startup.
 
 ## Common Operations
 - Status: `docker compose -f infra/docker-compose.yaml ps`
 - Logs (follow): `docker compose -f infra/docker-compose.yaml logs -f mlflow_tracking_server`
 - Rebuild a service: `docker compose -f infra/docker-compose.yaml build mlflow_tracking_server`
-- Restart a service: `docker compose -f infra/docker-compose.yaml restart grafana`
+- Restart a service: `docker compose -f infra/docker-compose.yaml restart mlflow_tracking_server`
 - Connect to a container: `docker exec -it mlflow_server bash`
 
 ## Resetting State

@@ -37,68 +37,14 @@ Develop a Machine Learning–driven Customer Churn Prediction System that identi
 - Clean and preprocess data (handle missing values, outliers, normalization).
 - Support batch data updates.
 2. Model Development
-Build and train machine learning models (e.g., Logistic Regression, Random Forest, Gradient Boosting, XGBoost, or Neural Networks).
-Support feature engineering (e.g., transaction frequency, average balance, product diversity).
-Implement model explainability techniques (e.g., SHAP, LIME) to understand churn drivers.
+- Build and train machine learning models (e.g., Logistic Regression, Random Forest, Gradient Boosting, XGBoost, or Neural Networks).
+- Implement model explainability techniques (e.g., SHAP, LIME) to understand churn drivers.
 3. Prediction & Scoring
-- Classify customers into risk buckets (Low, High).
+- Classify customers into risk buckets (0 for Low, 1 for High).
 - Provide explanations for predictions to support decision-making.
-4. Integration & Delivery
-- API endpoints for retrieving churn predictions.
-- Export functionality (CSV, Excel, dashboard integration with BI tools like Tableau or Power BI).
-5. Monitoring & Retraining
-- Track model performance (accuracy, precision, recall, AUC).
+4. Monitoring & Retraining
+- Track model performance (ROC-AUC, recall).
 - Scheduled retraining with new data (monthly/quarterly).
 - Alerts for model drift or data quality issues.
-
-
-
-
-
-
-
-
-
-
-
-
-## Technical Requirements
-Data Sources: Core banking systems, CRM, customer support tickets, digital channel logs, external credit bureau data (if applicable).
-Infrastructure:
-Cloud-based environment (AWS/GCP/Azure) with support for ML pipelines.
-Data lake/warehouse for storing historical customer and transaction data.
-Modeling Tools:
-Python (scikit-learn, XGBoost, LightGBM, PyTorch).
-MLflow or similar for experiment tracking and model versioning.
-Integration:
-REST/GraphQL APIs for real-time scoring.
-Batch scoring pipelines for large datasets.
-Security & Compliance:
-Data encryption (at rest and in transit).
-Role-based access control.
-Compliance with GDPR, CCPA, and local banking regulations.
-Design Requirements
-Dashboards:
-Executive dashboard: churn rate trends, high-level KPIs, financial impact estimates.
-Manager dashboard: team performance, customer risk segments, recommended actions.
-Agent dashboard: prioritized customer lists, risk scores, personalized retention suggestions.
-User Experience:
-Intuitive interface with clear data visualizations.
-Explanations of churn risk should be easy to understand (e.g., “Customer has reduced card usage by 40% in last 3 months”).
-Integration with existing CRM tools to avoid workflow disruption.
-Scalability:
-Support millions of customer profiles with efficient prediction times.
-System should scale horizontally with increased data and users.
-# 4. Risks and Mitigations
-Risk	Impact	Mitigation
-Data privacy & compliance risks (GDPR, CCPA)	Legal and financial penalties	Ensure data anonymization, secure storage, and compliance audits. Limit personally identifiable information (PII) exposure.
-Model bias & fairness	Risk of unfair treatment of certain customer segments	Regular bias detection, fairness audits, diverse training data, and transparent reporting.
-Model drift over time	Predictions may become inaccurate as customer behavior changes	Implement continuous monitoring, retraining schedules, and performance alerts.
-False positives (flagging loyal customers as at-risk)	Wasted retention spend and possible customer dissatisfaction	Set thresholds carefully, combine with business rules, and continuously tune models.
-Integration challenges	Delays in deployment or failure to integrate with legacy systems	Early alignment with IT teams, pilot testing, and using API-first architecture.
-User adoption	Relationship managers may not trust or use predictions	Provide explainability, clear confidence scores, and training for users.
-
-
-
-
-
+5. Serving
+- API endpoints for retrieving churn predictions.
