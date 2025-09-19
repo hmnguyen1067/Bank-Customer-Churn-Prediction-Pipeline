@@ -7,7 +7,7 @@ import xgboost as xgb
 from bank_customer_churn_prediction_pipeline.constants import (
     DEFAULT_SEED, MLFLOW_RUNNAME_PREFIX)
 from bank_customer_churn_prediction_pipeline.training import (
-    XGBObjective, make_predictions, optuna_tuning, plot_feature_importance,
+    XGBObjective, make_predictions, optuna_tuning,
     train_best_xgb_model)
 
 
@@ -115,8 +115,8 @@ class TestXGBObjective:
             objective = XGBObjective(X_train, y_train, X_val, y_val)
             result = objective(mock_trial)
 
-            # Should return ROC AUC
-            assert result == 0.85
+            # Should return F1
+            assert result == 0.75
 
             # Check metric logging
             mock_mlflow.log_metric.assert_has_calls(
@@ -147,60 +147,7 @@ class TestTrainBestXGBModel:
         mock_xgb.train.assert_called_once_with(best_params, mock_train_matrix)
 
         assert result == mock_model
-
-
-class TestPlotFeatureImportance:
-    @patch("bank_customer_churn_prediction_pipeline.training.matplotlib")
-    @patch("bank_customer_churn_prediction_pipeline.training.plt")
-    @patch("bank_customer_churn_prediction_pipeline.training.xgb")
-    def test_plot_feature_importance_without_feature_names(
-        self, mock_xgb, mock_plt, mock_matplotlib
-    ):
-        """Test plot_feature_importance without feature names"""
-        mock_model = MagicMock()
-        mock_fig = MagicMock()
-        mock_ax = MagicMock()
-        mock_plt.subplots.return_value = (mock_fig, mock_ax)
-
-        result = plot_feature_importance(mock_model)
-
-        # Check matplotlib backend setting
-        mock_matplotlib.use.assert_called_once_with("Agg")
-
-        # Check plot creation
-        mock_plt.subplots.assert_called_once_with(figsize=(10, 8))
-        mock_xgb.plot_importance.assert_called_once()
-
-        # Check plot cleanup
-        mock_plt.tight_layout.assert_called_once()
-        mock_plt.close.assert_called_once_with(mock_fig)
-
-        assert result == mock_fig
-
-    @patch("bank_customer_churn_prediction_pipeline.training.matplotlib")
-    @patch("bank_customer_churn_prediction_pipeline.training.plt")
-    @patch("bank_customer_churn_prediction_pipeline.training.xgb")
-    def test_plot_feature_importance_with_feature_names(
-        self, mock_xgb, mock_plt, mock_matplotlib
-    ):
-        """Test plot_feature_importance with feature names"""
-        mock_model = MagicMock()
-        feature_names = ["feature1", "feature2", "feature3"]
-        mock_fig = MagicMock()
-        mock_ax = MagicMock()
-        mock_plt.subplots.return_value = (mock_fig, mock_ax)
-
-        plot_feature_importance(mock_model, feat_names=feature_names)
-
-        # Check that feature names were set on model
-        assert mock_model.feature_names == feature_names
-
-        # Check plot_importance call
-        mock_xgb.plot_importance.assert_called_once()
-        call_args = mock_xgb.plot_importance.call_args[1]
-        assert call_args["importance_type"] == "gain"
-        assert call_args["ax"] == mock_ax
-        assert "gain" in call_args["title"]
+    
 
 
 class TestOptunatuning:

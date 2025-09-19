@@ -113,13 +113,12 @@ class TestPreprocessData:
         """Test that preprocess_data returns correct types"""
         X_val = sample_features.copy()
 
-        X_train_transformed, X_val_transformed, feature_names = preprocess_data(
+        X_train_transformed, X_val_transformed = preprocess_data(
             sample_features, X_val
         )
 
         assert isinstance(X_train_transformed, np.ndarray)
         assert isinstance(X_val_transformed, np.ndarray)
-        assert isinstance(feature_names, (list, np.ndarray))
 
     @patch("bank_customer_churn_prediction_pipeline.preprocessing.mlflow")
     def test_preprocess_data_logs_to_mlflow(self, mock_mlflow, sample_features):
@@ -140,30 +139,13 @@ class TestPreprocessData:
         assert call_args[1]["registered_model_name"] == PREPROCESSOR_MODEL_NAME
 
     @patch("bank_customer_churn_prediction_pipeline.preprocessing.mlflow")
-    def test_preprocess_data_feature_names(self, mock_mlflow, sample_features):
-        """Test that feature names are extracted correctly"""
-        X_val = sample_features.copy()
-
-        X_train_transformed, X_val_transformed, feature_names = preprocess_data(
-            sample_features, X_val
-        )
-
-        # Feature names should be a list/array of strings
-        assert len(feature_names) > 0
-        assert all(isinstance(name, str) for name in feature_names)
-
-    @patch("bank_customer_churn_prediction_pipeline.preprocessing.mlflow")
     def test_preprocess_data_consistent_shapes(self, mock_mlflow, sample_features):
         """Test that preprocessing produces consistent shapes"""
         X_val = sample_features.copy()
 
-        X_train_transformed, X_val_transformed, feature_names = preprocess_data(
+        X_train_transformed, X_val_transformed = preprocess_data(
             sample_features, X_val
         )
-
-        # Number of features should match feature names
-        assert X_train_transformed.shape[1] == len(feature_names)
-        assert X_val_transformed.shape[1] == len(feature_names)
 
         # Number of samples should be preserved
         assert X_train_transformed.shape[0] == len(sample_features)
@@ -177,7 +159,7 @@ class TestPreprocessData:
         # Create smaller validation set
         X_val = sample_features.iloc[:2].copy()
 
-        X_train_transformed, X_val_transformed, feature_names = preprocess_data(
+        X_train_transformed, X_val_transformed = preprocess_data(
             sample_features, X_val
         )
 
@@ -191,7 +173,7 @@ class TestPreprocessData:
         X_val = sample_features.copy()
 
         with patch("bank_customer_churn_prediction_pipeline.preprocessing.mlflow"):
-            X_train_transformed, X_val_transformed, feature_names = preprocess_data(
+            X_train_transformed, X_val_transformed = preprocess_data(
                 sample_features, X_val
             )
 

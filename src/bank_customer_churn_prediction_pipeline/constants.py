@@ -2,11 +2,17 @@ import os
 
 DEFAULT_SEED: int = 42
 
+# Prefect
+PREFECT_API_URL: str = os.getenv(
+    "PREFECT_API_URL", "http://127.0.0.1:4200/api"
+)
+
 # MLflow configuration
 MLFLOW_TRACKING_URI: str = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
 MLFLOW_EXPERIMENT_NAME: str = "Bank-Customer-Churn-Prediction-Experiment"
 MLFLOW_RUNNAME_PREFIX: str = "xgboost_hyperparameter_tuning"
 
+# Evidently
 EVIDENTLY_TRACKING_URI: str = os.getenv(
     "EVIDENTLY_TRACKING_URI", "http://localhost:8000"
 )
@@ -54,3 +60,4 @@ create table metrics(
 	share_missing_values float
 )
 """
+

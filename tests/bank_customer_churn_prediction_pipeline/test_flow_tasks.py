@@ -100,26 +100,21 @@ class TestHyperparameterTuningTask:
 class TestTrainModelTask:
     @patch("bank_customer_churn_prediction_pipeline.flow.mlflow")
     @patch("bank_customer_churn_prediction_pipeline.flow.train_best_xgb_model")
-    @patch("bank_customer_churn_prediction_pipeline.flow.plot_feature_importance")
     def test_train_model_task(
-        self, mock_plot_importance, mock_train_model, mock_mlflow
+        self, mock_train_model, mock_mlflow
     ):
         """Test train_model task"""
         X_train = np.random.rand(100, 10)
         y_train = np.random.randint(0, 2, 100)
         best_params = {"n_estimators": 100, "learning_rate": 0.1}
-        feat_names = ["feature_1", "feature_2"]
 
         mock_model = MagicMock()
         mock_train_model.return_value = mock_model
 
-        mock_figure = MagicMock()
-        mock_plot_importance.return_value = mock_figure
-
         mock_dataset = MagicMock()
         mock_mlflow.data.from_numpy.return_value = mock_dataset
 
-        train_model(X_train, y_train, best_params, feat_names)
+        train_model(X_train, y_train, best_params)
 
         # Check model training
         mock_train_model.assert_called_once_with(X_train, y_train, best_params)
@@ -129,12 +124,6 @@ class TestTrainModelTask:
         mock_mlflow.xgboost.log_model.assert_called_once()
         mock_mlflow.data.from_numpy.assert_called_once_with(X_train, targets=y_train)
         mock_mlflow.log_input.assert_called_once()
-        mock_mlflow.log_figure.assert_called_once_with(
-            mock_figure, artifact_file="feature_importance.png"
-        )
-
-        # Check feature importance plotting
-        mock_plot_importance.assert_called_once_with(mock_model, feat_names=feat_names)
 
 
 class TestLoadRegisteredArtifactsTask:

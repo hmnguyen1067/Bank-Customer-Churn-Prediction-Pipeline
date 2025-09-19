@@ -64,32 +64,13 @@ class XGBObjective(object):
             mlflow.log_metric("f1_score", float(f1))
             mlflow.log_params(params)
 
-        return roc_auc
+        return f1
 
 
 def train_best_xgb_model(X_train, y_train, best_params):
     train = xgb.DMatrix(X_train, label=y_train)
     model = xgb.train(best_params, train)
     return model
-
-
-def plot_feature_importance(model, feat_names=None):
-    matplotlib.use("Agg")
-
-    fig, ax = plt.subplots(figsize=(10, 8))
-    importance_type = "gain"
-    if feat_names is not None:
-        model.feature_names = list(feat_names)
-
-    xgb.plot_importance(
-        model,
-        importance_type=importance_type,
-        ax=ax,
-        title=f"Feature Importance based on {importance_type}",
-    )
-    plt.tight_layout()
-    plt.close(fig)
-    return fig
 
 
 def optuna_tuning(

@@ -1,20 +1,24 @@
+import os
 import mlflow
 import numpy as np
 import pandas as pd
+
 from prefect import flow, task
 
 from .constants import (DEFAULT_SEED, EVIDENTLY_PROJECT,
                         EVIDENTLY_TRACKING_URI, MLFLOW_EXPERIMENT_NAME,
                         MLFLOW_RUNNAME_PREFIX, MLFLOW_TRACKING_URI, NUM_TRIALS,
-                        PREPROCESSOR_MODEL_NAME, XGB_MODEL_NAME)
+                        PREPROCESSOR_MODEL_NAME, XGB_MODEL_NAME, PREFECT_API_URL)
 from .data_io import read_data, split_data
 from .monitoring import (create_db, create_evidently_data_def,
                          create_evidently_dataset, generate_evidently_report,
                          insert_metrics_to_db, prepare_monitoring_data,
                          upload_report)
 from .preprocessing import preprocess_data
-from .training import (optuna_tuning, plot_feature_importance,
+from .training import (optuna_tuning,
                        train_best_xgb_model)
+
+from .evaluation import evaluate_shap
 
 
 @task(retries=3, retry_delay_seconds=[2, 5, 15])
@@ -44,7 +48,7 @@ def hyperparameter_tuning(
 
 @task
 def train_model(
-    X_train: np.ndarray, y_train: pd.Series, best_params: dict, feat_names=None
+    X_train: np.ndarray, y_train: pd.Series, best_params: dict
 ):
     with mlflow.start_run():
         xgb_model = train_best_xgb_model(X_train, y_train, best_params)
@@ -58,9 +62,6 @@ def train_model(
         dataset = mlflow.data.from_numpy(X_train, targets=y_train)
         mlflow.log_input(dataset, context="training_best_model")
 
-        importances = plot_feature_importance(xgb_model, feat_names=feat_names)
-        mlflow.log_figure(importances, artifact_file="feature_importance.png")
-
 
 @task
 def load_registered_artifacts(
@@ -70,6 +71,9 @@ def load_registered_artifacts(
     model = mlflow.xgboost.load_model(f"models:/{model_name}/latest")
     return preprocessor, model
 
+@task
+def run_evaluation(model, preprocessor, X_test, y_test):
+    evaluate_shap(model, preprocessor, X_test, y_test)
 
 @task
 def create_drift_report(
@@ -107,6 +111,7 @@ def grafana_monitor(metrics):
 @flow(name="bank-churn-prefect-flow")
 def churn_flow(
     data_path: str,
+    prefect_url=PREFECT_API_URL,
     mlflow_uri: str = MLFLOW_TRACKING_URI,
     experiment_name: str = MLFLOW_EXPERIMENT_NAME,
     runname_prefix: str = MLFLOW_RUNNAME_PREFIX,
@@ -115,14 +120,16 @@ def churn_flow(
     trials: int = NUM_TRIALS,
     seed: int = DEFAULT_SEED,
 ):
+    os.environ["PREFECT_API_URL"]=prefect_url
     mlflow.set_tracking_uri(mlflow_uri)
     mlflow.set_experiment(experiment_name)
+    
 
     X_train, y_train, X_val, y_val, X_test, y_test = load_data.submit(
         data_path, seed
     ).result()
 
-    X_train_tf, X_val_tf, feature_names = preprocess.submit(X_train, X_val).result()
+    X_train_tf, X_val_tf = preprocess.submit(X_train, X_val).result()
 
     best_params = hyperparameter_tuning.submit(
         X_train_tf, y_train, X_val_tf, y_val, runname_prefix, trials
@@ -132,9 +139,11 @@ def churn_flow(
         np.append(y_train, y_val, axis=0),
     )
 
-    train_model.submit(X_trv, y_trv, best_params, feature_names).result()
+    train_model.submit(X_trv, y_trv, best_params).result()
 
     preprocessor, model = load_registered_artifacts.submit().result()
+
+    run_evaluation.submit(model=model, preprocessor=preprocessor, X_test=X_test, y_test=y_test).wait()
 
     X_data, y_data = (
         pd.concat([X_train, X_val], axis=0),

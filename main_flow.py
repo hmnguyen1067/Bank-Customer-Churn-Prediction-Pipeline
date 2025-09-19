@@ -3,7 +3,7 @@ import argparse
 from bank_customer_churn_prediction_pipeline.constants import (
     DEFAULT_SEED, EVIDENTLY_PROJECT, EVIDENTLY_TRACKING_URI,
     MLFLOW_EXPERIMENT_NAME, MLFLOW_RUNNAME_PREFIX, MLFLOW_TRACKING_URI,
-    NUM_TRIALS)
+    NUM_TRIALS, PREFECT_API_URL)
 from bank_customer_churn_prediction_pipeline.flow import churn_flow
 
 
@@ -14,6 +14,12 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default="data/Customer-Churn-Records.csv",
         help="Path to Customer-Churn-Records.csv",
+    )
+    parser.add_argument(
+        "--prefect-url",
+        type=str,
+        default=PREFECT_API_URL,
+        help="Prefect API URL",
     )
     parser.add_argument(
         "--mlflow-uri",
@@ -48,7 +54,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--trials",
         type=int,
-        default=NUM_TRIALS,
+        default=200,
         help="Number of Optuna trials",
     )
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help="Random seed")
@@ -59,6 +65,7 @@ def main() -> None:
     args = parse_args()
     churn_flow(
         data_path=args.data_path,
+        prefect_url= args.prefect_url,
         mlflow_uri=args.mlflow_uri,
         experiment_name=args.experiment,
         runname_prefix=args.mlflow_run_prefix,

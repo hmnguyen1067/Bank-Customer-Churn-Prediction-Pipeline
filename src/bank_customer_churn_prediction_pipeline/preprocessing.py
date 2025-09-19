@@ -47,5 +47,4 @@ def preprocess_data(
             name="preprocessor",
             registered_model_name=PREPROCESSOR_MODEL_NAME,
         )
-        feature_names = preprocessor.get_feature_names_out()
-    return X_train, X_val, feature_names
+    return X_train, X_val

@@ -1,3 +1,6 @@
+# MLFlow specific
+mlruns/
+
 # MacOS specific
 .DS_Store
 

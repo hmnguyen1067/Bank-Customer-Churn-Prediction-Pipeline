@@ -4,7 +4,7 @@ env-setup:
 	pixi install
 	pixi run pre-commit install
 
-data:
+data-up:
 	mkdir -p ./data
 	curl -L -o ./data/bank-customer-churn.zip\
   		https://www.kaggle.com/api/v1/datasets/download/radheshyamkollipara/bank-customer-churn
