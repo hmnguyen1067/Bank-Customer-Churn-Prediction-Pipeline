@@ -46,16 +46,15 @@ This guide explains how to run the local stack (MLflow, MinIO, Postgres, Prefect
 
 ## Run the Pipeline Flow
 1) Start the stack: `make docker-up`.
-2) Ensure data exists at `data/Customer-Churn-Records.csv` (use `make data` or place manually).
-3) Run the flow locally and point it at the Docker services:
-   - `python main_flow.py --data-path data/Customer-Churn-Records.csv --mlflow-uri http://localhost:5000 --evidently-uri http://localhost:8000 --trials 50 --seed 42`
+2) Ensure data exists at `data/Customer-Churn-Records.csv` (use `make data-up`).
+3) Run the flow locally and point it at the Docker services: `python main_flow.py`
 4) Explore results:
    - MLflow: experiments, runs, registered models.
    - Evidently: project “Churn Prediction Project” and drift reports.
    - Grafana: “Churn dashboard” showing metrics written by the flow.
 
 ## Use the FastAPI Inference API
-1) Make sure the stack is up: `make docker-up` (builds and runs the `api` service).
+1) Make sure the stack is already running: `make docker-up` (builds and runs the `api` service).
 2) Ensure the preprocessor and model are registered in MLflow (run the training flow above if needed).
 3) Send a sample request:
    - Save as `sample_payload.json`:

@@ -11,7 +11,7 @@ data-up:
 	unzip ./data/bank-customer-churn.zip -d ./data
 	rm ./data/bank-customer-churn.zip
 
-report: data
+report: data-up
 	python ./scripts/initial_report.py
 
 docker-up:
