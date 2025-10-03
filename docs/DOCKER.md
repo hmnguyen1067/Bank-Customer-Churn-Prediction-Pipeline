@@ -22,7 +22,7 @@ This guide explains how to run the local stack (MLflow, MinIO, Postgres, Prefect
 - MLflow UI: `http://localhost:5000`
   - Tracks experiments; serves artifacts to MinIO S3.
 - MinIO S3 API: `http://localhost:9000`
-- MinIO Console: `http://localhost:$9001`
+- MinIO Console: `http://localhost:${MINIO_CONSOLE_PORT}` (default `9001`)
   - Login with `${MINIO_ROOT_USER}/${MINIO_ROOT_PASSWORD}` (defaults in `config.env`). Buckets `mlflow` and `evidently` are auto-created.
 - Prefect UI: `http://localhost:4200`
 - Grafana UI: `http://localhost:3000` (default `admin`/`admin` on first login; you will be prompted to change password)
@@ -93,7 +93,7 @@ This guide explains how to run the local stack (MLflow, MinIO, Postgres, Prefect
   - Evidently: `EVIDENTLY_BUCKET_NAME`.
   - Grafana DB: `GRAFANA_DB_*`, `GRAFANA_DB_PORT`.
   - API: `API_PORT`.
-- Change ports here if something is already in use on your machine (MacOS has AirReceiver runned on port 5000).
+- Change ports here if something is already in use on your machine (on macOS, AirPlay Receiver uses port 5000).
 - If you change bucket names or credentials, update both MinIO creds and the bucket envs; the compose jobs will create missing buckets at startup.
 
 ## Common Operations
@@ -116,4 +116,4 @@ This guide explains how to run the local stack (MLflow, MinIO, Postgres, Prefect
 - Evidently can’t access S3: Check `FSSPEC_S3_*` envs on the `evidently` service and that MinIO is reachable.
 - Grafana shows DB errors: Ensure `grafana_db` is healthy; check logs with `docker compose logs -f grafana_db`.
 - Adminer connection: Use server `mlflow_db`/`prefect_db`/`grafana_db` inside the Compose network, or host `localhost` with the mapped ports.
- - API `/ready` returns 503: Ensure MLflow is running, MinIO is healthy, and both preprocessor and model are registered; check `api` logs.
+- API `/ready` returns 503: Ensure MLflow is running, MinIO is healthy, and both preprocessor and model are registered; check `api` logs.

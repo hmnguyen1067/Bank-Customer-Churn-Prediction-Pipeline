@@ -1,5 +1,5 @@
 # About this repo
-This is a repository for showcasing an end-to-end bank customer churn prediction pipeline. Please refer to [PRD.md](docs/PRD.md)
+End-to-end bank customer churn prediction pipeline with training, registry, serving, and monitoring. High-level product notes are in [docs/PRD.md](docs/PRD.md) and the system design in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 # Features
 ![](assets/BankChurn.png)
@@ -24,36 +24,32 @@ This is a repository for showcasing an end-to-end bank customer churn prediction
 ## Prerequisites
 - Python >= 3.10, <3.13
 - Docker
-- Pixi (optional)
+- Pixi (for a fully reproducible local env)
 
 ## Installation
-Multiple package manager can be used to install the dependencies (from `pyproject.toml`) but pixi is used for this demo.
-```bash
-# pixi (Recommended)
-pixi install
-
-# pip
-pip install -e .
-
-# uv
-uv pip install
-```
-
-Make sure that you have the dataset downloaded
+1) Make sure that you have the dataset downloaded
 ```bash
 make data-up
 ```
+
+2) With Pixi installed, install virtual environment with Pixi
+```bash
+make env-setup
+```
+
 ## Usage
 ### Docker
+1) Local stack with Docker (MLflow, MinIO, Postgres, Prefect, Evidently, Grafana, API)
 ```bash
 # Start services
 make docker-up
 
-# Run a training flow for model creation
-# Example
-python main_flow.py --data-path data/Customer-Churn-Records.csv
+# Run a local Prefect flow that logs runs to MLflow, registers artifacts, creates drift report, and exports metrics.
+pixi run python main_flow.py --data-path data/Customer-Churn-Records.csv
 ```
-Create a sample request `sample_payload.json`:
+
+2) Create a sample request `sample_payload.json`:
+
 ```
 {
     "instances": [
@@ -75,9 +71,33 @@ Create a sample request `sample_payload.json`:
     ]
 }
 ```
-Invoke a POST request:
+
+3) Invoke a POST request to the running API:
 ```bash
 curl -s -X POST http://localhost:8001/predict -H 'Content-Type: application/json' --data @sample_payload.json
 ```
 
-Further details can be looked up at [DOCKER.md](docs/DOCKER.md)
+Note:
+- Health/readiness and metadata endpoints: `GET /health`, `GET /ready`, `GET /metadata`.
+- Service URLs (defaults): MLflow `:5000`, Prefect `:4200`, Evidently `:8000`, Grafana `:3000`, API `:8001`. See [docs/DOCKER.md](docs/DOCKER.md) for details and overrides.
+
+## Testing
+Run all tests:
+```bash
+# With pixi
+pixi run pytest tests -v
+
+# With make
+make test
+```
+
+## Troubleshooting
+- Ports already in use: adjust values in `infra/config/config.env` then `make docker-down && make docker-up`.
+- MLflow artifacts error: ensure MinIO is healthy and buckets exist; verify creds in `infra/config/config.env`.
+- API `/ready` returns 503: ensure MLflow and MinIO are up, and both preprocessor and model are registered (re-run training flow).
+
+## References
+- Data dictionary: [docs/DATA.md](docs/DATA.md)
+- Hypothethical product requirements: [docs/PRD.md](docs/PRD.md)
+- Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- Docker details: [docs/DOCKER.md](docs/DOCKER.md)
