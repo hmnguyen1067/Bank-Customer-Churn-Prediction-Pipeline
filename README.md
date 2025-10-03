@@ -101,3 +101,4 @@ make test
 - Hypothethical product requirements: [docs/PRD.md](docs/PRD.md)
 - Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - Docker details: [docs/DOCKER.md](docs/DOCKER.md)
+- Testing: [docs/TESTING.md](docs/TESTING.md)
