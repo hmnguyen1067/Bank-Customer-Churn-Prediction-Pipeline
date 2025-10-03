@@ -51,8 +51,8 @@ services:
     restart: always
     environment:
       - FSSPEC_S3_ENDPOINT_URL=http://s3:9000
-      - FSSPEC_S3_KEY=${MINIO_ACCESS_KEY:-MINIO_ROOT_USER} 
-      - FSSPEC_S3_SECRET=${MINIO_SECRET_ACCESS_KEY:-MINIO_ROOT_PASSWORD} 
+      - FSSPEC_S3_KEY=${MINIO_ACCESS_KEY:-MINIO_ROOT_USER}
+      - FSSPEC_S3_SECRET=${MINIO_SECRET_ACCESS_KEY:-MINIO_ROOT_PASSWORD}
     command: --workspace s3://${EVIDENTLY_BUCKET_NAME}/workspace
     volumes:
       - evidently_workspace:/app/workspace
@@ -89,10 +89,6 @@ services:
       s3:
         condition: service_healthy
     environment:
-      # - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY:-$MINIO_ROOT_USER}
-      # - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_ACCESS_KEY:-$MINIO_ROOT_PASSWORD}
-      # - MLFLOW_S3_ENDPOINT_URL=http://s3:${MINIO_PORT}
-      # - MLFLOW_S3_IGNORE_TLS=true
       - MLFLOW_TRACKING_URI=http://mlflow_server:5000
     ports:
       - "${API_PORT:-8001}:8001"
